@@ -1,0 +1,15 @@
+screen:
+00|bXYcdef|
+01||
+02|line2|
+03||
+04||
+05||
+06||
+07||
+styles:
+  r0 "b" #0a0c10
+under:
+  0,0 10x20 #3de0f5
+over:
+cursor: 0,0 10x20 #3de0f5

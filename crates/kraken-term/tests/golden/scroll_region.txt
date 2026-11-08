@@ -1,0 +1,15 @@
+screen:
+00|top|
+01|2|
+02|C|
+03|D|
+04| E|
+05|bottom|
+06||
+07||
+styles:
+  r0 "t" #0a0c10
+under:
+  0,0 10x20 #3de0f5
+over:
+cursor: 0,0 10x20 #3de0f5

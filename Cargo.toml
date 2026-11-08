@@ -1,0 +1,35 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+alacritty_terminal = "0.26"
+winit = "0.30"
+glyphon = "0.12"
+wgpu = "30"
+bytemuck = { version = "1", features = ["derive"] }
+pollster = "1"
+arboard = "3"
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+dirs = "6"
+log = "0.4"
+env_logger = "0.11"
+kraken-config = { path = "crates/kraken-config" }
+kraken-term = { path = "crates/kraken-term" }
+kraken-render = { path = "crates/kraken-render" }
+kraken-mux = { path = "crates/kraken-mux" }
+kraken-ui = { path = "crates/kraken-ui" }
+
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3

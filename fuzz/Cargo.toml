@@ -1,0 +1,38 @@
+[package]
+name = "kraken-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+# Not part of the main workspace: needs nightly + cargo-fuzz.
+#   cargo install cargo-fuzz
+#   cargo +nightly fuzz run rewriter -- -max_total_time=300
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+kraken-term = { path = "../crates/kraken-term" }
+
+[[bin]]
+name = "rewriter"
+path = "fuzz_targets/rewriter.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "sixel"
+path = "fuzz_targets/sixel.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "kitty"
+path = "fuzz_targets/kitty.rs"
+test = false
+doc = false
+bench = false

@@ -1,0 +1,193 @@
+name: Release
+
+# Builds a universal Kraken.app, signs + notarizes it (when secrets exist), packages a
+# DMG, updates the Sparkle appcast and renders the Homebrew cask. On a v* tag push it
+# also creates a *draft* GitHub Release with the DMG, appcast and cask attached.
+#
+# Every signing/notarization step is a no-op without secrets, so this stays green on
+# forks (you get an ad-hoc signed, un-notarized DMG). See README → "Releasing".
+#
+# Secrets (all optional):
+#   MACOS_CERT_P12_BASE64     base64 of the "Developer ID Application" .p12 (cert + key)
+#   MACOS_CERT_PASSWORD       password of that .p12
+#   MACOS_SIGN_IDENTITY       identity name; auto-detected from the .p12 when unset
+#   APPLE_API_KEY_ID          App Store Connect API key ID           ┐
+#   APPLE_API_ISSUER          App Store Connect issuer UUID          ├ notarization
+#   APPLE_API_KEY_P8_BASE64   base64 of AuthKey_<KEYID>.p8           ┘
+#   SPARKLE_ED_PRIVATE_KEY    Sparkle EdDSA private key (generate_keys -x)
+# Variables (optional, Settings → Variables):
+#   KRAKEN_FEED_URL           SUFeedURL baked into Info.plist
+#   SPARKLE_ED_PUBLIC_KEY     SUPublicEDKey baked into Info.plist
+#   SPARKLE_VERSION           Sparkle release whose sign_update to use (default below)
+#   SPARKLE_TARBALL_SHA256    if set, the Sparkle download is checked against it
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # gh release create
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: build · sign · notarize · package
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      # Secrets can't appear in `if:` expressions directly; expose presence via env.
+      HAS_CERT: ${{ secrets.MACOS_CERT_P12_BASE64 != '' && secrets.MACOS_CERT_PASSWORD != '' }}
+      HAS_NOTARY: ${{ secrets.APPLE_API_KEY_ID != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_KEY_P8_BASE64 != '' }}
+      HAS_SPARKLE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY != '' }}
+      KRAKEN_GITHUB_REPO: ${{ github.repository }}
+      KRAKEN_BUILD_NUMBER: ${{ github.run_number }}
+      KRAKEN_FEED_URL: ${{ vars.KRAKEN_FEED_URL }}
+      KRAKEN_SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_ED_PUBLIC_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check tag matches Cargo version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match Cargo.toml version ${version}"
+            exit 1
+          fi
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Import Developer ID certificate
+        if: env.HAS_CERT == 'true'
+        env:
+          CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/kraken-signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          CERT="$RUNNER_TEMP/cert.p12"
+          printf '%s' "$CERT_P12_BASE64" | base64 --decode > "$CERT"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -f pkcs12 \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          # Prepend to the search list so codesign finds it (keep the login keychain).
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$CERT"
+
+          if [ -z "$SIGN_IDENTITY" ]; then
+            SIGN_IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" \
+              | sed -nE 's/.*"(Developer ID Application: [^"]+)".*/\1/p' | head -n1)
+          fi
+          [ -n "$SIGN_IDENTITY" ] || { echo "::error::No 'Developer ID Application' identity in the .p12"; exit 1; }
+          echo "Using identity: $SIGN_IDENTITY"
+          {
+            echo "KRAKEN_SIGN_IDENTITY=$SIGN_IDENTITY"
+            echo "KRAKEN_KEYCHAIN=$KEYCHAIN"
+          } >> "$GITHUB_ENV"
+
+      - name: Write App Store Connect API key
+        if: env.HAS_NOTARY == 'true'
+        env:
+          API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${API_KEY_ID}.p8"
+          printf '%s' "$API_KEY_P8_BASE64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          {
+            echo "APPLE_API_KEY_ID=$API_KEY_ID"
+            echo "APPLE_API_ISSUER=$API_ISSUER"
+            echo "APPLE_API_KEY_PATH=$KEY_PATH"
+          } >> "$GITHUB_ENV"
+
+      - name: Fetch Sparkle tools (sign_update)
+        if: env.HAS_SPARKLE_KEY == 'true'
+        env:
+          SPARKLE_VERSION: ${{ vars.SPARKLE_VERSION || '2.6.4' }}
+          SPARKLE_SHA256: ${{ vars.SPARKLE_TARBALL_SHA256 }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/sparkle"
+          mkdir -p "$dir"
+          curl -fsSL -o "$dir/sparkle.tar.xz" \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          if [ -n "$SPARKLE_SHA256" ]; then
+            echo "$SPARKLE_SHA256  $dir/sparkle.tar.xz" | shasum -a 256 -c -
+          fi
+          tar -xJf "$dir/sparkle.tar.xz" -C "$dir"
+          echo "SPARKLE_BIN=$dir/bin" >> "$GITHUB_ENV"
+
+      - name: Bundle (universal)
+        run: ./scripts/bundle.sh --universal
+
+      - name: Sign app
+        run: ./scripts/sign.sh
+
+      - name: Notarize app
+        run: ./scripts/notarize.sh
+
+      - name: Build DMG (signs + notarizes it when configured)
+        run: ./scripts/dmg.sh
+
+      - name: Update appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: ./scripts/appcast.sh
+
+      - name: Render Homebrew cask
+        run: ./scripts/cask.sh
+
+      - name: Collect version
+        id: meta
+        run: echo "version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kraken-${{ steps.meta.outputs.version }}
+          path: |
+            target/Kraken-${{ steps.meta.outputs.version }}.dmg
+            packaging/appcast.xml
+            target/kraken.rb
+          if-no-files-found: error
+
+      - name: Create draft GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          signed="ad-hoc signed, NOT notarized (no signing secrets configured)"
+          [ -n "${KRAKEN_SIGN_IDENTITY:-}" ] && signed="Developer ID signed"
+          [ -n "${KRAKEN_SIGN_IDENTITY:-}" ] && [ "$HAS_NOTARY" = true ] && signed="Developer ID signed and notarized"
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "Kraken $VERSION" --generate-notes \
+            --notes "Build: $signed." \
+            "target/Kraken-$VERSION.dmg" packaging/appcast.xml target/kraken.rb
+
+      - name: Clean up signing material
+        if: always()
+        run: |
+          if [ -n "${KRAKEN_KEYCHAIN:-}" ] && [ -f "$KRAKEN_KEYCHAIN" ]; then
+            security delete-keychain "$KRAKEN_KEYCHAIN" || true
+          fi
+          if [ -n "${APPLE_API_KEY_PATH:-}" ]; then rm -f "$APPLE_API_KEY_PATH"; fi

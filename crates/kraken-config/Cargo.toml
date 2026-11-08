@@ -1,0 +1,13 @@
+[package]
+name = "kraken-config"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde.workspace = true
+toml.workspace = true
+dirs.workspace = true
+log.workspace = true
+
+[lints]
+workspace = true

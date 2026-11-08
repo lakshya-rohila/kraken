@@ -1,0 +1,14 @@
+screen:
+00|中文 ok|
+01|🦑 kraken|
+02|é accent|
+03||
+04||
+05||
+06||
+07||
+styles:
+under:
+  80,40 10x20 #3de0f5
+over:
+cursor: 80,40 10x20 #3de0f5

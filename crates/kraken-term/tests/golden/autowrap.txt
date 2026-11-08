@@ -1,0 +1,15 @@
+screen:
+00|0123456789abcdefghijklmn|
+01|OVERFLOW|
+02|ABCDEFGHIJKLMNOPQRSTUVW!|
+03||
+04||
+05||
+06||
+07||
+styles:
+  r2 "!" #0a0c10
+under:
+  230,40 10x20 #3de0f5
+over:
+cursor: 230,40 10x20 #3de0f5

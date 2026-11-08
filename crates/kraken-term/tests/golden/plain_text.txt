@@ -1,0 +1,14 @@
+screen:
+00|hello|
+01|world|
+02||
+03||
+04||
+05||
+06||
+07||
+styles:
+under:
+  50,20 10x20 #3de0f5
+over:
+cursor: 50,20 10x20 #3de0f5

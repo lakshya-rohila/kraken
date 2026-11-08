@@ -1,0 +1,14 @@
+screen:
+00|beam|
+01||
+02||
+03||
+04||
+05||
+06||
+07||
+styles:
+under:
+over:
+  40,0 2x20 #3de0f5
+cursor: 40,0 10x20 #3de0f5

@@ -1,0 +1,21 @@
+screen:
+00|red bold256 ital|
+01|inv dim bg|
+02||
+03||
+04||
+05||
+06||
+07||
+styles:
+  r0 "red" #ff5c7a
+  r0 "bold256" #00d7ff bold
+  r0 "ital" #ff8000 italic
+  r1 "inv" #0a0c10
+  r1 "dim" #9a9da5
+under:
+  0,20 30x20 #e4e8f1
+  80,20 20x20 #5ca8ff
+  100,20 10x20 #3de0f5
+over:
+cursor: 100,20 10x20 #3de0f5

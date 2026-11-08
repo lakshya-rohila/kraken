@@ -1,0 +1,13 @@
+[package]
+name = "kraken-render"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+glyphon.workspace = true
+wgpu.workspace = true
+bytemuck.workspace = true
+log.workspace = true
+
+[lints]
+workspace = true

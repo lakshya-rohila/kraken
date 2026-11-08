@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Hardened-runtime entitlements for Kraken (applied by scripts/sign.sh).
+
+  Code-integrity exceptions (com.apple.security.cs.*): NONE.
+    - allow-jit / allow-unsigned-executable-memory: Kraken has no JIT. wgpu talks to
+      Metal, whose shader compilation happens in a system service, not in our process.
+    - disable-library-validation: Kraken links only system frameworks and loads no
+      third-party plug-ins or dylibs, so library validation never trips.
+    - allow-dyld-environment-variables: not needed. The hardened runtime makes dyld
+      ignore DYLD_* for the Kraken process itself. Shells started inside Kraken are
+      separate binaries with their own signatures, and DYLD_* exported from a user's
+      shell rc files keeps working for them; only DYLD_* set when *launching* Kraken
+      is dropped, which is the point of the hardened runtime.
+    - Child processes do NOT inherit these entitlements (or the hardened runtime);
+      each program the terminal spawns runs under its own signature.
+
+  Resource-access entitlements (NOT exceptions to code integrity):
+    TCC attributes programs launched from a terminal to the terminal app (the
+    "responsible process"). Under the hardened runtime, a protected resource whose
+    entitlement is missing is denied silently, without ever prompting the user. So a
+    user running `osascript`, `ffmpeg -f avfoundation`, `imagesnap`, etc. inside
+    Kraken would just get failures. Terminal.app and iTerm2 carry these for the
+    same reason. Each one still requires the user to approve the prompt (the
+    matching NS*UsageDescription strings are set in Info.plist by bundle.sh).
+-->
+<plist version="1.0">
+<dict>
+  <!-- Apple Events: `osascript -e 'tell application "Finder" ...'`, `open -a` scripting. -->
+  <key>com.apple.security.automation.apple-events</key>
+  <true/>
+  <!-- Microphone: CLI audio tools (sox/ffmpeg recording, speech-to-text CLIs). -->
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
+  <!-- Camera: CLI capture tools (imagesnap, ffmpeg avfoundation input). -->
+  <key>com.apple.security.device.camera</key>
+  <true/>
+  <!--
+    Deliberately not included (add with a matching NS*UsageDescription if users need them):
+    com.apple.security.personal-information.location / .addressbook / .calendars /
+    .photos-library.
+  -->
+</dict>
+</plist>

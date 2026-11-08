@@ -1,0 +1,14 @@
+screen:
+00|screen-top|
+01||
+02|region-top|
+03||
+04||
+05||
+06||
+07||
+styles:
+under:
+  100,0 10x20 #3de0f5
+over:
+cursor: 100,0 10x20 #3de0f5

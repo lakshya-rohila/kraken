@@ -1,0 +1,17 @@
+[package]
+name = "kraken-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kraken's drawn widgets: status bar, sidebar, search, palette-free overlays, cards and animations."
+
+[dependencies]
+kraken-config.workspace = true
+kraken-render.workspace = true
+kraken-term.workspace = true
+kraken-mux.workspace = true
+libc = "0.2"
+log.workspace = true
+
+[lints]
+workspace = true
