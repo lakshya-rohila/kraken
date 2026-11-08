@@ -1,1 +1,7 @@
 /target
+
+# Promo video: private music + renders (never pushed)
+promo/assets/music*
+promo/renders/
+promo/node_modules/
+promo/.hyperframes/
