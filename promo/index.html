@@ -1,0 +1,76 @@
+<!doctype html>
+<html
+  lang="en"
+  data-composition-variables='[
+    {"id":"repo","type":"string","label":"Repository","default":"github.com/lakshya-rohila/kraken"},
+    {"id":"command","type":"string","label":"Install command","default":"curl -fsSL https://raw.githubusercontent.com/lakshya-rohila/kraken/main/install.sh | bash"},
+    {"id":"accent","type":"color","label":"Accent","default":"#FF4A1C"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #06070c;
+        --ink: #f2eeff;
+        --accent: #ff4a1c;
+        --violet: #6e55ff;
+        --cyan: #41e0f0;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: var(--ground);
+      }
+      #grain {
+        position: absolute;
+        inset: -60px;
+        z-index: 50;
+        pointer-events: none;
+        opacity: 0.07;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.6 -0.3'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>");
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="45" data-width="1920" data-height="1080">
+      <div id="hook" data-composition-id="hook" data-composition-src="compositions/hook.html" data-start="0" data-duration="3.604" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="drop" data-composition-id="drop" data-composition-src="compositions/drop.html" data-start="3.604" data-duration="3.524" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="agents" data-composition-id="agents" data-composition-src="compositions/agents.html" data-start="7.128" data-duration="3.524" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="card" data-composition-id="card" data-composition-src="compositions/card.html" data-start="10.652" data-duration="3.524" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="paste" data-composition-id="paste" data-composition-src="compositions/paste.html" data-start="14.176" data-duration="3.524" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="overview" data-composition-id="overview" data-composition-src="compositions/overview.html" data-start="17.7" data-duration="3.524" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="themes" data-composition-id="themes" data-composition-src="compositions/themes.html" data-start="21.224" data-duration="3.524" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="tools" data-composition-id="tools" data-composition-src="compositions/tools.html" data-start="24.748" data-duration="3.524" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="speed" data-composition-id="speed" data-composition-src="compositions/speed.html" data-start="28.272" data-duration="3.524" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="cta" data-composition-id="cta" data-composition-src="compositions/cta.html" data-start="31.796" data-duration="7.048" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="endcard" data-composition-id="endcard" data-composition-src="compositions/endcard.html" data-start="38.844" data-duration="6.156" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <div id="grain" class="clip" data-start="0" data-duration="45" data-track-index="2" data-layout-ignore></div>
+
+      <audio id="music" class="clip" src="assets/music-45.mp3" data-start="0" data-duration="45" data-track-index="3" data-volume="1"></audio>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      // Film grain: the noise tile jumps 47,31 px every frame (deterministic steps).
+      tl.fromTo("#grain", { backgroundPosition: "0px 0px" }, { backgroundPosition: "63450px -41850px", duration: 45, ease: "steps(1350)" }, 0);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

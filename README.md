@@ -37,7 +37,32 @@
 
 Kraken supports macOS 13.0 (Ventura) and later on both **Apple Silicon (M1/M2/M3/M4)** and **Intel** Macs.
 
-### Option 1: Homebrew Cask (Recommended)
+### ⚡ One-line install (Recommended)
+
+Paste this into any terminal:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lakshya-rohila/kraken/main/install.sh | bash
+```
+
+It installs the latest release into `/Applications`. If there's no prebuilt release yet, it builds Kraken from source for you (it installs Rust if needed, builds in a temp folder, and cleans up). Run the same command again to update.
+
+<details>
+<summary>Options</summary>
+
+```bash
+# Always build from source
+curl -fsSL https://raw.githubusercontent.com/lakshya-rohila/kraken/main/install.sh | KRAKEN_FROM_SOURCE=1 bash
+
+# Build a specific branch or tag
+curl -fsSL https://raw.githubusercontent.com/lakshya-rohila/kraken/main/install.sh | KRAKEN_REF=v0.1.0 bash
+```
+
+</details>
+
+---
+
+### Option 1: Homebrew Cask (coming soon)
 
 Install via Homebrew:
 
@@ -55,7 +80,7 @@ brew upgrade --cask kraken
 
 ### Option 2: Direct Download (.DMG)
 
-1. Download the latest `Kraken-<version>.dmg` from [**GitHub Releases**](https://github.com/kraken-term/kraken/releases).
+1. Download the latest `Kraken-<version>.dmg` from [**GitHub Releases**](https://github.com/lakshya-rohila/kraken/releases).
 2. Open the `.dmg` file.
 3. Drag **Kraken.app** into your `/Applications` folder.
 4. Launch Kraken from Spotlight (`⌘ Space` → `Kraken`) or Launchpad.
@@ -71,7 +96,7 @@ Requirements:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/kraken-term/kraken.git
+git clone https://github.com/lakshya-rohila/kraken.git
 cd kraken
 
 # 2. Build release bundle and install directly into /Applications

@@ -1,0 +1,74 @@
+<template>
+  <style>
+#root{position:absolute;inset:0;overflow:hidden;background:#06070c;font-family:"Archivo Black",sans-serif;color:#f2eeff}
+.shot{position:absolute;inset:0;overflow:hidden}
+.shk{position:absolute;inset:0}
+.cam{position:absolute;inset:0;transform-origin:50% 50%}
+.cam img{position:absolute;left:0;top:0;width:1920px;height:1080px;object-fit:cover}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:40;pointer-events:none}
+.flash.o{background:#ff4a1c}
+.ttl{position:absolute;z-index:20;display:flex;flex-wrap:wrap;gap:12px 26px;max-width:1720px}
+.ttl.bl{left:96px;bottom:104px}
+.ttl.tl{left:96px;top:96px}
+.ttl.br{right:96px;bottom:104px;justify-content:flex-end}
+.ttl.tr{right:96px;top:96px;justify-content:flex-end}
+.w{display:inline-block;font-size:124px;line-height:.9;letter-spacing:-.02em;text-transform:uppercase;background:#06070c;padding:16px 26px 8px;
+   text-shadow:-3px 0 rgba(255,74,28,.9),3px 0 rgba(65,224,240,.8)}
+.w.a{color:#ff4a1c}
+.field{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.giant{font-size:250px;line-height:.86;letter-spacing:-.03em;text-transform:uppercase;text-align:center;
+   text-shadow:-5px 0 rgba(255,74,28,.85),5px 0 rgba(65,224,240,.75)}
+.mono{font-family:"JetBrains Mono",monospace}
+</style>
+  <div id="root" data-composition-id="card" data-width="1920" data-height="1080">
+    <div id="c-card" class="shot clip" data-start="0" data-duration="1.762" data-track-index="1" style="z-index:1"><div class="shk" id="c-card-shk"><div class="cam" id="c-card-cam"><img id="c-card-img" src="assets/shots/card.jpg" alt=""></div></div></div>
+    <div id="c-done" class="shot clip" data-start="1.762" data-duration="1.762" data-track-index="1" style="z-index:1"><div class="shk" id="c-done-shk"><div class="cam" id="c-done-cam"><img id="c-done-img" src="assets/shots/card-answered.jpg" alt=""></div></div></div>
+    <div id="c-t1" class="ttl bl clip" data-start="0.22" data-duration="1.478" data-track-index="10"><span class="w">AGENT</span><span class="w a">STUCK?</span></div>
+    <div id="c-t2" class="ttl tl clip" data-start="1.982" data-duration="1.542" data-track-index="10"><span class="w">ANSWER</span><span class="w">IN</span><span class="w">ONE</span><span class="w a">CLICK</span></div>
+    <div id="c-cursor" class="clip" data-start="0" data-duration="1.962" data-track-index="11" style="position:absolute;left:0;top:0;z-index:25;width:64px;height:88px"><svg id="c-cursor-svg" width="64" height="88" viewBox="0 0 16 22" style="overflow:visible"><path d="M1 1 L1 17 L5 13.4 L8 20.5 L10.6 19.4 L7.7 12.5 L13 12.5 Z" fill="#fff" stroke="#06070c" stroke-width="1.2" stroke-linejoin="round"/></svg></div>
+    <div id="c-flash" class="flash o"></div>
+  </div>
+  <script>
+
+const B = (k) => k * 0.4405;
+const W = 1920, H = 1080;
+// Camera framing that puts source point (fx, fy) at the centre at scale s, never showing an edge.
+const cam = (fx, fy, s) => {
+  const mx = (s - 1) * W / 2, my = (s - 1) * H / 2;
+  const x = Math.max(-mx, Math.min(mx, (0.5 - fx) * W * s));
+  const y = Math.max(-my, Math.min(my, (0.5 - fy) * H * s));
+  return { scale: s, x, y };
+};
+// Where source point (fx, fy) lands on screen under a cam() framing.
+const onScreen = (fx, fy, c) => ({ x: W / 2 + (fx * W - W / 2) * c.scale + c.x, y: H / 2 + (fy * H - H / 2) * c.scale + c.y });
+const flash = (tl, sel, t, o = 0.9, d = 0.2) => { tl.set(sel, { opacity: o }, t); tl.to(sel, { opacity: 0, duration: d, ease: "power2.out" }, t + 0.034); };
+const shake = (tl, sel, t, a = 24) => {
+  [[1, -0.6], [-0.8, 0.9], [0.6, -0.4], [-0.35, 0.3], [0.15, -0.1], [0, 0]].forEach((p, i) => tl.set(sel, { x: p[0] * a, y: p[1] * a }, t + i * 0.034));
+};
+// Words of a title slam in one by one at the given times, then hold dead still.
+const slam = (tl, sel, times) => {
+  document.querySelectorAll(sel + " .w").forEach((el, i) => {
+    tl.fromTo(el, { opacity: 0, scale: 1.45, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.18, ease: "expo.out" }, times[Math.min(i, times.length - 1)]);
+  });
+};
+const leave = (tl, sel, t) => tl.to(sel + " .w", { opacity: 0, filter: "blur(8px)", duration: 0.14, ease: "power2.in", stagger: 0.03 }, t);
+
+    const tl = gsap.timeline({ paused: true });
+
+    const cardCam = cam(0.87, 0.17, 2.45);
+    tl.fromTo("#c-card-cam", { scale: 1, x: 0, y: 0 }, { ...cardCam, duration: 0.55, ease: "power2.inOut" }, 0.05);
+    const yes = onScreen(0.779, 0.171, cardCam);
+    tl.set("#c-cursor", { opacity: 0 }, 0);
+    tl.fromTo("#c-cursor", { opacity: 1, x: 1980, y: 1120 }, { x: yes.x - 6, y: yes.y - 4, duration: B(1.6), ease: "power3.out" }, B(2));
+    tl.to("#c-cursor-svg", { scale: 0.8, duration: 0.06, transformOrigin: "0% 0%" }, B(4) - 0.1);
+    tl.to("#c-cursor-svg", { scale: 1, duration: 0.08 }, B(4) - 0.04);
+    tl.fromTo("#c-done-cam", cam(0.75, 0.95, 2.8), { ...cam(0.75, 0.95, 2.4), duration: 0.32, ease: "expo.out" }, B(4));
+    shake(tl, "#c-done-shk", B(4), 22);
+    flash(tl, "#c-flash", B(4), 0.6, 0.16);
+    slam(tl, "#c-t1", [B(0.5), B(1.5)]);
+    leave(tl, "#c-t1", B(3.75));
+    slam(tl, "#c-t2", [B(4.5), B(5), B(5.5), B(6)]);
+
+    window.__timelines["card"] = tl;
+  </script>
+</template>

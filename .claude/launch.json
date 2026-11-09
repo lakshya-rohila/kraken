@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kraken-promo",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["hyperframes", "preview", "promo", "--port", "3017"],
+      "port": 3017
+    }
+  ]
+}
