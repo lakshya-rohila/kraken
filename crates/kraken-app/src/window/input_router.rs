@@ -858,13 +858,8 @@ impl TermWindow {
             }
             Some(Drag::Select(id)) => {
                 let id = *id;
-                if let (Some((row, col, side)), Some(p)) = (self.cell_in(id), self.panes.get(&id)) {
-                    let mut term = p.session.term.lock();
-                    let point = view::viewport_to_point(term.grid().display_offset(), row, col);
-                    if let Some(sel) = term.selection.as_mut() {
-                        sel.update(point, side);
-                    }
-                }
+                self.extend_selection(id);
+                self.select_autoscroll();
                 self.window.request_redraw();
                 return;
             }

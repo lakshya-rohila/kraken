@@ -323,6 +323,53 @@ impl TermWindow {
         Some((row, col, if right { Side::Right } else { Side::Left }))
     }
 
+    /// Move the end of the selection being dragged in `id` to the mouse.
+    pub(super) fn extend_selection(&self, id: PaneId) {
+        if let (Some((row, col, side)), Some(p)) = (self.cell_in(id), self.panes.get(&id)) {
+            let mut term = p.session.term.lock();
+            let point = view::viewport_to_point(term.grid().display_offset(), row, col);
+            if let Some(sel) = term.selection.as_mut() {
+                sel.update(point, side);
+            }
+        }
+    }
+
+    /// While a selection is dragged above or below its pane: the pane and how
+    /// many rows past the edge the mouse is (negative = above, positive = below).
+    pub(super) fn select_overshoot(&self) -> Option<(PaneId, f32)> {
+        let Some(Drag::Select(id)) = self.drag else { return None };
+        let p = self.panes.get(&id)?;
+        let (top, h) = (p.layout.y, p.layout.cell_h);
+        let bottom = top + h * p.session.size.rows as f32;
+        let y = self.cursor_px.1;
+        let rows = if y < top {
+            -((top - y) / h)
+        } else if y >= bottom {
+            (y - bottom) / h + 1.0
+        } else {
+            return None;
+        };
+        Some((id, rows))
+    }
+
+    /// Scroll a step towards the mouse when a selection is dragged past the
+    /// pane's top or bottom, and stretch the selection with it. Rate-limited
+    /// to one step per [`AUTOSCROLL_STEP`]; further out scrolls faster.
+    pub(super) fn select_autoscroll(&mut self) {
+        let Some((id, rows)) = self.select_overshoot() else { return };
+        if self.autoscroll_at.elapsed() < AUTOSCROLL_STEP {
+            return;
+        }
+        self.autoscroll_at = Instant::now();
+        let lines = (rows.abs().ceil() as i32).clamp(1, 12);
+        if let Some(p) = self.panes.get(&id) {
+            // Positive deltas move up into the scrollback.
+            p.session.term.lock().scroll_display(Scroll::Delta(if rows < 0.0 { lines } else { -lines }));
+        }
+        self.extend_selection(id);
+        self.window.request_redraw();
+    }
+
     pub(super) fn reporting(&self, id: PaneId) -> Option<TermMode> {
         let p = self.panes.get(&id)?;
         let mode = *p.session.term.lock().mode();

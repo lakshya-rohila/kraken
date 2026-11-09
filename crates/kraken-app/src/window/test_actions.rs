@@ -72,6 +72,29 @@ impl TermWindow {
                 }
                 Ok(())
             }
+            a if a.starts_with("selectdrag:") => {
+                // selectdrag:up|down|release — start a selection mid-pane, then hold
+                // the mouse 3 rows past the top/bottom edge (autoscroll), or let go.
+                if &a[11..] == "release" {
+                    self.drag = None;
+                } else if let Some(id) = self.focus_id()
+                    && let Some(p) = self.panes.get(&id)
+                {
+                    let (l, rows) = (p.layout, p.session.size.rows as f32);
+                    let x = l.x + l.cell_w * 4.0;
+                    self.cursor_px = (x, l.y + l.cell_h * rows / 2.0);
+                    let point = {
+                        let term = p.session.term.lock();
+                        view::viewport_to_point(term.grid().display_offset(), (rows / 2.0) as usize, 4)
+                    };
+                    p.session.term.lock().selection = Some(Selection::new(SelectionType::Simple, point, Side::Left));
+                    self.drag = Some(Drag::Select(id));
+                    let up = &a[11..] == "up";
+                    self.cursor_px.1 = if up { l.y - l.cell_h * 3.0 } else { l.y + l.cell_h * (rows + 2.5) };
+                    self.window.request_redraw();
+                }
+                Ok(())
+            }
             "sidebar" => {
                 self.perform(ctx, Action::ToggleSidebar);
                 if let Some(sb) = self.sidebar.as_mut() {

@@ -177,6 +177,9 @@ enum DropTarget {
     NewTab,
 }
 
+/// How often a selection dragged past a pane's edge scrolls another step.
+const AUTOSCROLL_STEP: Duration = Duration::from_millis(50);
+
 enum Drag {
     /// Moving a pane: `active` once the mouse has travelled a few pixels.
     Pane {
@@ -212,6 +215,8 @@ pub struct TermWindow {
     cursor_px: (f32, f32),
     cursor_icon: CursorIcon,
     last_click: Option<(Instant, PaneId, usize, usize, u8)>,
+    /// Last autoscroll step while a selection is dragged past a pane's edge.
+    autoscroll_at: Instant,
     preedit: bool,
     drag: Option<Drag>,
     /// Geometry from the last layout pass, for hit-testing.
@@ -364,6 +369,7 @@ impl TermWindow {
             cursor_px: (0.0, 0.0),
             cursor_icon: CursorIcon::Default,
             last_click: None,
+            autoscroll_at: Instant::now(),
             preedit: false,
             drag: None,
             visible: Vec::new(),

@@ -8,6 +8,7 @@ impl TermWindow {
         let build_start = Instant::now();
         self.capture_hook();
         self.later_hook(ctx);
+        self.select_autoscroll();
         let theme = self.preview.clone().unwrap_or_else(|| ctx.cfg.theme.clone());
         let t = &theme;
         let s = self.scale;
@@ -522,6 +523,10 @@ impl TermWindow {
             || self.visible.iter().any(|(id, _)| self.panes.get(id).is_some_and(|p| anim::progress(p.born, 300.0, speed) < 1.0));
         if busy {
             return Some(Instant::now());
+        }
+        // Dragging a selection past a pane's edge keeps scrolling the scrollback.
+        if self.select_overshoot().is_some() {
+            return Some(self.autoscroll_at + AUTOSCROLL_STEP);
         }
         // The legend bar's spinner, comet and pulses: 30 frames a second is
         // plenty for them, and only while something is actually happening.
